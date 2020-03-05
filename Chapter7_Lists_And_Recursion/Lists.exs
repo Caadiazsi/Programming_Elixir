@@ -48,16 +48,4 @@ defmodule MyList do
     def span(a,from, to) do
         span(Enum.concat(a,[from]),from+1,to)
     end
-    #Exercise_5
-    # IMPLEMENTAR ESTO
-    #Exercise_6
-    def flatten([]) do
-        []
-    end
-    def flatten([head|tail]) when is_list(head) do
-        Enum.concat(flatten(head),flatten(tail))
-    end
-    def flatten([head|tail]) do
-        Enum.concat([head],flatten(tail))
-    end
 end
