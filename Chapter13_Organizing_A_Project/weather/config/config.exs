@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure your application as:
 #
-#     config :issues, key: :value
+#     config :weather, key: :value
 #
 # and access this configuration in your application as:
 #
-#     Application.get_env(:issues, :key)
+#     Application.get_env(:weather, :key)
 #
 # You can also configure a 3rd-party app:
 #
@@ -28,7 +28,5 @@ use Mix.Config
 # here (which is why it is important to import them last).
 #
 #     import_config "#{Mix.env()}.exs"
-
-config :issues, github_url: "https://api.github.com"
-
+config :weather, weather_url: "https://w1.weather.gov/xml/current_obs"
 config :logger, compile_time_purge_level: :info
