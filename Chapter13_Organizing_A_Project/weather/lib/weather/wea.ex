@@ -5,7 +5,7 @@ defmodule Weather.WEA do
         { "location", "Location"},
         { "station_id", "Station"},
         { "observation_time", "Last Updated" },
-        { "observation_time_rfc822", "Date" },
+        { "observation_time_rfc822", "Update Date" },
         { "weather", "Weather" },
         { "temperature_string", "Temperature" },
         { "dewpoint_string", "Dewpoint" },
