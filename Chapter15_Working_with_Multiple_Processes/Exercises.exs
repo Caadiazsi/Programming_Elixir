@@ -27,7 +27,7 @@ defmodule  Exercises do
         exit(:bye)
     end
     def exercise_3() do
-        spawn_link(Spawn, :child_ex3, [self()])
+        spawn_link(Exercises, :child_ex3, [self()])
         :timer.sleep(500)
         receive do
             {:ok, message} -> IO.puts message
@@ -39,7 +39,7 @@ defmodule  Exercises do
         raise("Smoke Bomb!")
     end
     def exercise_4() do
-        spawn_link(Spawn, :child_ex4, [self()])
+        spawn_link(Exercises, :child_ex4, [self()])
         :timer.sleep(500)
         receive do
             {:ok, message} -> IO.puts message
@@ -47,14 +47,14 @@ defmodule  Exercises do
     end
     # EXERCISE_5
     def monitor_exercise_3() do
-        spawn_monitor(Spawn, :child_exit, [self()])
+        spawn_monitor(Exercises, :child_ex3, [self()])
         :timer.sleep(500)
         receive do
-            msg -> IO.puts inspect msg
+            msg -> IO.inspect msg
         end
     end
     def monitor_exercise_4() do
-        spawn_monitor(Spawn, :child_exception, [self()])
+        spawn_monitor(Exercises, :child_ex4, [self()])
         :timer.sleep(500)
         receive do
             msg -> IO.puts msg
@@ -129,8 +129,66 @@ defmodule Scheduler do
         end
     end
 end
+#EXERCISE_9
+defmodule Cats do
+    def create_files (number_of_files) do
+        animals = ["Dog", "Cat", "Pig", "Fox", "Ant", "Bee", "Owl", "Rat","Bug"]
+        len = length(animals) -1
+        Enum.each(1..number_of_files, fn n -> 
+            number_of_words = Enum.random(1..100)
+            line = Enum.reduce(0..number_of_words,"", fn _,acc ->
+                    acc<> Enum.at(animals, Enum.random(0..len)) <> " "
+                end)
+            File.write("./cats/#{n}.txt", line)
+        end)
+    end
+    def cats(scheduler) do
+        send scheduler, { :ready, self() }
+        receive do
+            {:client, path, client} ->
+                send client, {:answer, path, cats_in_path(path), self()}
+                cats(path)
+            {:shutdown} ->
+                exit{:normal}
+        end
+    end
+    defp cats_in_path(path) do
+        File.read!(path)
+            |> String.downcase()
+            |> String.split("cat")
+            |> length
+    end
+end
+defmodule General_Scheduler do
+    def run(num_processes, module, func, process_items) do
+        (1..num_processes)
+            |> Enum.map(fn(_)->
+                    spawn(module,func,[self()])
+                end)
+            |> schedule_processes(process_items, [])
+    end
+    def schedule_processes(processes, process_item_queue, results) do
+        receive do
+            {:ready, pid} when process_item_queue != [] ->
+                [next|tail] = process_item_queue
+                send pid, {:client, next, self()}
+                schedule_processes(processes, tail, results)
+            {:ready, pid} ->
+                send pid, {:shutdown}
+                if length(processes) > 1 do
+                    schedule_processes(List.delete(processes, pid), process_item_queue, results)
+                else
+                    Enum.sort(results, fn {n1, _}, {n2,_} ->
+                            n1 <= n2 
+                        end)
+                end
+            {:answer, item, result, _pid} ->
+                schedule_processes(processes, process_item_queue,[{item, result}|results])
+        end
+    end
+end
 #EXERCISE_2
-    Exercises.run_tokens(["Ana","Betty","Carla","Danny"])
+    #Exercises.run_tokens(["Ana","Betty","Carla","Danny"])
 
     # In order to guarantee that the answers get in the order the tokens were sent
     # Pass de receive block from run_tokens to spawning.
@@ -139,25 +197,29 @@ end
 
 #EXERCISE_3
     #Exercises.exercise_3()
+    
     # If the main process is sleeping the message gets lost
     # otherwise it will sometimes get it and sometimes wont.
 
 #EXERCISE_4
     #Exercises.exercise_4()
+    
     #It does not matter if the main process is sleeping or not
     #The exception will always break the run
 
 #EXERCISE_5
     #Exercises.monitor_exercise_3()
+    
     # Unlike exercise-3, even if not sleeping, the 
     # process seems to always receive child sent msg.
+    
     #Exercises.monitor_exercise_4()
     # If sleep, the exception shut and then the message its send
     # If not sleep, exception wont shut
 
 #EXERCISE_6
     # Every child process needs the parent pid in order to sent back the response
-    # the parent pid gets saved in me, if sel() gets passed instead of me
+    # the parent pid gets saved in me, if self() gets passed instead of me
     # the childs will get their own pid as the parent pid
 
 #EXERCISE_7
@@ -167,17 +229,25 @@ end
     # Changing the function to the previous one will solve the problem.
 
 #EXERCISE_8
-    to_process = List.duplicate(37, 20)
-    Enum.each 1..10, fn num_processes ->
-        { time, result } = :timer.tc(Scheduler, :run, [ num_processes, FibSolver, :fib, to_process ])
-        if num_processes == 1 do
-            IO.puts inspect result
-            IO.puts "\n #   time (s)"
-        end
-        :io.format "~2B   ~.2f~n", [ num_processes, time / 1000000.0 ]
-    end
+    #to_process = List.duplicate(37, 20)
+    #Enum.each 1..10, fn num_processes ->
+    #    { time, result } = :timer.tc(Scheduler, :run, [ num_processes, FibSolver, :fib, to_process ])
+    #    if num_processes == 1 do
+    #        IO.puts inspect result
+    #        IO.puts "\n #   time (s)"
+    #    end
+    #    :io.format "~2B   ~.2f~n", [ num_processes, time / 1000000.0 ]
+    #end
 
 #EXERCISE_9
-
-
-
+    Cats.create_files(10)
+    files = File.ls!("./cats/")
+        |> Enum.map(&("./cats/#{&1}"))
+    Enum.each 1 .. 5, fn num_processes -> 
+        { time, result} = :timer.tc(General_Scheduler, :run, [num_processes, Cats, :cats, files])
+        if num_processes == 1 do
+            IO. puts inspect result
+            IO. puts "/n #      time (s)"
+        end
+        :io.format "~2B     ~.2f~n", [ num_processes, time / 1000000.0 ]
+    end
